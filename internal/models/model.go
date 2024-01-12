@@ -5,6 +5,11 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
+type RegisterMysql struct {
+	Username       string `gorm:"username"`
+	HashedPassword string `gorm:"hashed_password"`
+}
+
 type RegisterResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message,omitempty"`
@@ -17,7 +22,5 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message,omitempty"`
-	Token   string `json:"token"`
+	Token string `json:"token"`
 }

@@ -1,0 +1,27 @@
+version: '3'
+
+networks:
+  shopping-web:
+
+
+services:
+
+  mysql-shopping-web:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+    ports:
+      - "3306:3306"
+    networks:
+      - shopping-web
+
+  app:
+    image: shopping-web-auth-microservice:latest
+    ports:
+      - "9000:80"
+    depends_on:
+      - mysql-shopping-web
+    environment:
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+    networks:
+      - shopping-web

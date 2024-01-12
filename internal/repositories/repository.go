@@ -19,7 +19,7 @@ func NewAuthRepository(db *gorm.DB) AuthRepository {
 }
 
 type AuthRepository interface {
-	Register(ctx context.Context, u userCredential) error
+	Register(ctx context.Context, u model.RegisterMysql) error
 	Login(ctx context.Context, u model.LoginRequest) error
 }
 
@@ -28,17 +28,22 @@ type userCredential struct {
 	HashedPassword string `gorm:"hashed_password"`
 }
 
-func (m *authRepository) Register(ctx context.Context, request userCredential) error {
+func (m *authRepository) Register(ctx context.Context, request model.RegisterMysql) error {
 
 	var userCredential userCredential
-	if err := m.db.Where("username = ?", request.Username).First(&userCredential).Error; err != nil {
+
+	if err := m.db.Table("user_credentials").Where("username = ?", request.Username).First(&userCredential).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return err
 		}
 	}
 
-	if err := m.db.Create(&request).Error; err != nil {
-		return fmt.Errorf("an error while creating user")
+	if len(userCredential.Username) != 0 {
+		return fmt.Errorf("username exists")
+	}
+
+	if err := m.db.Table("user_credentials").Create(&request).Error; err != nil {
+		return fmt.Errorf("an error occurred while creating user: %w", err)
 	}
 
 	return nil
@@ -60,10 +65,10 @@ func (m *authRepository) Login(ctx context.Context, request model.LoginRequest) 
 
 func (m *authRepository) getHashedPassword(ctx context.Context, username string) (string, error) {
 
-	var hashPassword string
-	if err := m.db.Table("user_credentials").Where("username = ?", username).Select("hash_password").First(&hashPassword).Error; err != nil {
+	var userCredential userCredential
+	if err := m.db.Table("user_credentials").Where("username = ?", username).First(&userCredential).Error; err != nil {
 		return "", err
 	}
 
-	return hashPassword, nil
+	return userCredential.HashedPassword, nil
 }

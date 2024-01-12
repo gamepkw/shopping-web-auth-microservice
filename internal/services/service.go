@@ -26,7 +26,15 @@ type AuthService interface {
 }
 
 func (a *authService) Register(c context.Context, request model.RegisterRequest) error {
-	// ctx := context.Background()
+	ctx := context.Background()
+
+	var mysqlRegister model.RegisterMysql
+	mysqlRegister.Username = request.Username
+	mysqlRegister.HashedPassword = utils.HashPassword(request.Password)
+
+	if err := a.authRepo.Register(ctx, mysqlRegister); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -34,7 +42,7 @@ func (a *authService) Register(c context.Context, request model.RegisterRequest)
 func (a *authService) Login(c context.Context, request model.LoginRequest) (string, error) {
 	ctx := context.Background()
 
-	request.HashedPassword = utils.EncodeBase64(request.HashedPassword)
+	request.HashedPassword = utils.HashPassword(request.Password)
 
 	if err := a.authRepo.Login(ctx, request); err != nil {
 		return "", err

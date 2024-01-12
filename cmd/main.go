@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo/v4"
@@ -19,7 +20,7 @@ import (
 )
 
 func init() {
-	viper.SetConfigFile(`../config/config.json`)
+	viper.SetConfigFile(`config.json`)
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)
@@ -32,16 +33,19 @@ func init() {
 
 func main() {
 
+	os.Setenv("TZ", "Asia/Bangkok")
+
 	dbHost := viper.GetString(`database.host`)
 	dbPort := viper.GetString(`database.port`)
-	dbAuth := viper.GetString(`database.auth`)
+	dbUser := viper.GetString(`database.user`)
 	dbPass := viper.GetString(`database.pass`)
 	dbName := viper.GetString(`database.name`)
-	dbconnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbAuth, dbPass, dbHost, dbPort, dbName)
+	dbconnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
 	val := url.Values{}
 	val.Add("parseTime", "true")
 	val.Add("loc", "Asia/Bangkok")
 	dsn := fmt.Sprintf("%s?%s", dbconnection, val.Encode())
+	fmt.Println(dsn)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -57,5 +61,6 @@ func main() {
 	authService := _authService.NewAuthService(authRepo)
 	_authHandler.NewAuthHandler(e, authService)
 
-	log.Fatal(e.Start(viper.GetString("server.address")))
+	// log.Fatal(e.Start(viper.GetString("server.address")))
+	log.Fatal(e.Start("0.0.0.0:80"))
 }

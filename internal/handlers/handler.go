@@ -14,8 +14,7 @@ type AuthHandler struct {
 }
 
 type ResponseError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Message string `json:"error_message"`
 }
 
 type Response struct {
@@ -33,20 +32,29 @@ func NewAuthHandler(e *echo.Echo, as authService.AuthService) {
 }
 
 func (a *AuthHandler) Register(c echo.Context) error {
-	var registerRequest model.LoginRequest
+	var request model.RegisterRequest
 
-	if err := c.Bind(&registerRequest); err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Invalid request"})
 	}
 
-	if registerRequest.Username == "" {
+	if request.Username == "" {
 		logrus.Errorf("[Register] Invalid Username")
-		return c.JSON(http.StatusBadRequest, Response{Message: "Invalid Username", Body: nil})
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Invalid Username"})
 	}
 
-	if registerRequest.Password == "" {
+	if request.Password == "" {
 		logrus.Errorf("[Register] Empty Password")
-		return c.JSON(http.StatusBadRequest, Response{Message: "Empty Password", Body: nil})
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Empty Password"})
+	}
+
+	if len(request.Password) < 8 {
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Password length must be at least 8 characters"})
+	}
+
+	ctx := c.Request().Context()
+	if err := a.authService.Register(ctx, request); err != nil {
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, Response{Message: "Register successful", Body: nil})
@@ -56,38 +64,26 @@ func (a *AuthHandler) Login(c echo.Context) error {
 	var loginRequest model.LoginRequest
 
 	if err := c.Bind(&loginRequest); err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Invalid request"})
 	}
 
 	if loginRequest.Username == "" {
 		logrus.Errorf("[Register] Invalid Username")
-		return c.JSON(http.StatusBadRequest, Response{Message: "Invalid Username", Body: nil})
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Invalid Username"})
 	}
 
 	if loginRequest.Password == "" {
 		logrus.Errorf("[Register] Empty Password")
-		return c.JSON(http.StatusBadRequest, Response{Message: "Empty Password", Body: nil})
+		return c.JSON(http.StatusBadRequest, ResponseError{Message: "Empty Password"})
 	}
 
-	return c.JSON(http.StatusCreated, Response{Message: "Login successful", Body: nil})
+	ctx := c.Request().Context()
+	token, err := a.authService.Login(ctx, loginRequest)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Response{Message: err.Error(), Body: nil})
+	}
+
+	return c.JSON(http.StatusCreated, Response{Message: "Login successful", Body: model.LoginResponse{Token: token}})
 }
 
 var TimestampFormat = "2006-01-02 15:04:05"
-
-func getStatusCode(err error) int {
-	if err == nil {
-		return http.StatusOK
-	}
-
-	logrus.Error(err)
-	switch err {
-	case model.ErrInternalServerError:
-		return http.StatusInternalServerError
-	case model.ErrNotFound:
-		return http.StatusNotFound
-	case model.ErrConflict:
-		return http.StatusConflict
-	default:
-		return http.StatusInternalServerError
-	}
-}

@@ -1,17 +1,17 @@
 {
   "debug": false,
   "server": {
-    "address": ":8081"
+    "address": ":9000"
   },
   "context": {
     "timeout": 5
   },
   "database": {
-    "host": "localhost",
+    "host": "mysql-shopping-web",
     "port": "3306",
     "user": "root",
     "pass": "P@ssw0rd",
-    "name": "banking"
+    "name": "shopping-web"
   },
   "redis": {
     "host": "localhost",

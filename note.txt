@@ -3,3 +3,16 @@ git add .
 git commit -m "commit"
 git remote add origin https://github.com/gamepkw/shopping-web-auth-microservice.git
 git push -u origin main
+
+git add .
+git commit -m "commit"
+git push -u origin main
+git push -f origin main 
+
+docker build -t shopping-web-auth-microservice:latest .
+docker tag test-service-a:latest docker.io/gamepkw/test-service-a:latest
+docker push docker.io/gamepkw/test-service-a:latest
+
+docker run -d --network host -p 9000:80 --name shopping-web-auth-microservice shopping-web-auth-microservice:latest
+
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mysql-shopping-web
